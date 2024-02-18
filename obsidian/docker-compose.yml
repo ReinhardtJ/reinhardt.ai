@@ -1,0 +1,13 @@
+version: '3'
+services:
+  obsidian-proxy:
+    container_name: obsidian-proxy-containern
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt
+
