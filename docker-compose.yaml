@@ -43,7 +43,7 @@ services:
     build:
       context: ../NoBullshitTimer
       dockerfile: Dockerfile
-    container_name: blazor-app-container
+    container_name: timer-container
     expose:
       - "80"
     environment:
