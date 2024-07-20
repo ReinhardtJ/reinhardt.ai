@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    restart: always
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+    restart: always
+
+  obsidian-proxy:
+    image: nginx:alpine
+    container_name: obsidian-proxy-container
+    expose:
+      - "80"
+    volumes:
+      - ./obsidian.conf:/etc/nginx/conf.d/default.conf:ro
+    environment:
+      - VIRTUAL_HOST=reinhardt.ai
+      - LETSENCRYPT_HOST=reinhardt.ai
+    restart: always
+
+  no-bullshit-timer:
+    build:
+      context: ../NoBullshitTimer
+      dockerfile: Dockerfile
+    container_name: blazor-app-container
+    expose:
+      - "80"
+    environment:
+      - VIRTUAL_HOST=timer.reinhardt.ai
+      - LETSENCRYPT_HOST=timer.reinhardt.ai
+    restart: always
+
+volumes:
+  certs:
+  vhost:
+  html:
+  acme:
