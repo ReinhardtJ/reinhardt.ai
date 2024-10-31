@@ -27,13 +27,25 @@ services:
       - NGINX_PROXY_CONTAINER=nginx-proxy
     restart: always
 
-  obsidian-proxy:
+ obsidian-proxy:
     image: nginx:alpine
     container_name: obsidian-proxy-container
     expose:
       - "80"
     volumes:
       - ./obsidian.conf:/etc/nginx/conf.d/default.conf:ro
+    environment:
+      - VIRTUAL_HOST=obsidian.reinhardt.ai
+      - LETSENCRYPT_HOST=obsidian.reinhardt.ai
+    restart: always
+
+  notion-proxy:
+    image: nginx:alpine
+    container_name: notion-proxy-container
+    expose:
+      - "80"
+    volumes:
+      - ./notion.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
       - VIRTUAL_HOST=reinhardt.ai
       - LETSENCRYPT_HOST=reinhardt.ai
