@@ -27,7 +27,7 @@ services:
       - NGINX_PROXY_CONTAINER=nginx-proxy
     restart: always
 
- obsidian-proxy:
+  obsidian-proxy:
     image: nginx:alpine
     container_name: obsidian-proxy-container
     expose:
