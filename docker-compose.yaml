@@ -96,6 +96,8 @@ services:
       #   change the port in the args in the build section,
       #   as well as the port in the command section to match
       # - "42110:42110"
+    expose:
+      - "42110"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     working_dir: /app
@@ -105,6 +107,8 @@ services:
       - khoj_models:/root/.cache/huggingface
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
+      - VIRTUAL_HOST=khoj.reinhardt.ai
+      - LETSENCRYPT_HOST=khoj.reinhardt.ai
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
