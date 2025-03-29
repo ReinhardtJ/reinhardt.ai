@@ -109,6 +109,7 @@ services:
     environment:
       - VIRTUAL_HOST=khoj.reinhardt.ai
       - LETSENCRYPT_HOST=khoj.reinhardt.ai
+      - VIRTUAL_PORT=42110
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
