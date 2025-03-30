@@ -82,8 +82,7 @@ services:
 
   khoj-server:
     depends_on:
-      khoj-database:
-        condition: service_healthy
+      - khoj-database
     # Use the following line to use the latest version of khoj. Otherwise, it will build from source. Set this to ghcr.io/khoj-ai/khoj-cloud:latest if you want to use the prod image.
     image: ghcr.io/khoj-ai/khoj-cloud:latest
       # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the official image.
