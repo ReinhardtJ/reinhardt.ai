@@ -130,6 +130,8 @@ services:
       - KHOJ_DEBUG=False
       - KHOJ_ADMIN_EMAIL
       - KHOJ_ADMIN_PASSWORD
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
       # Default URL of Terrarium, the default Python sandbox used by Khoj to run code. Its container is specified above
       - KHOJ_TERRARIUM_URL=http://khoj-sandbox:8080
       # Uncomment line below to have Khoj run code in remote E2B code sandbox instead of the self-hosted Terrarium sandbox above. Get your E2B API key from https://e2b.dev/.
