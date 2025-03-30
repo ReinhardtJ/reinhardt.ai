@@ -99,16 +99,16 @@ services:
     depends_on:
       - khoj-database
     # Use the following line to use the latest version of khoj. Otherwise, it will build from source. Set this to ghcr.io/khoj-ai/khoj-cloud:latest if you want to use the prod image.
-    image: ghcr.io/khoj-ai/khoj:latest
+    image: ghcr.io/khoj-ai/khoj-cloud:latest
       # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the official image.
       # build:
-    # context: .
-    # ports:
+      # context: .
+      # ports:
       # If changing the local port (left hand side), no other changes required.
       # If changing the remote port (right hand side),
       #   change the port in the args in the build section,
       #   as well as the port in the command section to match
-      # - "42110:42110"
+    # - "42110:42110"
     expose:
       - "42110"
     extra_hosts:
@@ -130,6 +130,8 @@ services:
       - KHOJ_DEBUG=False
       - KHOJ_ADMIN_EMAIL
       - KHOJ_ADMIN_PASSWORD
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
       # Default URL of Terrarium, the default Python sandbox used by Khoj to run code. Its container is specified above
       - KHOJ_TERRARIUM_URL=http://khoj-sandbox:8080
       # Uncomment line below to have Khoj run code in remote E2B code sandbox instead of the self-hosted Terrarium sandbox above. Get your E2B API key from https://e2b.dev/.
@@ -176,7 +178,7 @@ services:
       # Read more at https://docs.khoj.dev/miscellaneous/telemetry
       # - KHOJ_TELEMETRY_DISABLE=True
     # Comment out this line when you're using the official ghcr.io/khoj-ai/khoj-cloud:latest prod image.
-    # command: -vv --anonymous-mode --non-interactive
+    # command: --host="0.0.0.0" --port=42110 -vv --anonymous-mode --non-interactive
 
 volumes:
   certs:
