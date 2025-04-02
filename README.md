@@ -4,7 +4,7 @@ This repository maintains the infrastructure running under [reinhardt.ai](https:
 
 # Setup
 The setup uses docker with a docker-compose yaml file to define and run the 
-services. Currently, the setup consists of 4 services:
+services. Currently, the setup consists of the following services:
 
 **nginx-proxy**
 
@@ -21,6 +21,12 @@ the obsidian proxy which replaces the publish.obsidian.me url for reinhardt.ai
 **timer**
 a simple interval timer app hosted as a blazor web application. See
 https://github.com/ReinhardtJ/NoBullshitTimer
+
+**khoj-proxy**
+a Nginx proxy for the Khoj service with basic authentication support. It allows accessing the Khoj service with basic auth credentials.
+
+**khoj-server and related services**
+the Khoj AI service and its dependencies (database, search, sandbox).
 
 # Run
 Make sure docker is installed.
