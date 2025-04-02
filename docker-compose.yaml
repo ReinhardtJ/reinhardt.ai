@@ -82,7 +82,9 @@ services:
       - SEARXNG_BASE_URL=http://localhost:8080/
 
   khoj-proxy:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
     container_name: khoj-proxy-container
     expose:
       - "80"
@@ -95,6 +97,7 @@ services:
     restart: always
     depends_on:
       - khoj-server
+
 
   khoj-server:
     depends_on:
