@@ -9,11 +9,11 @@ RUN curl -L -O https://github.com/openresty/set-misc-nginx-module/archive/refs/t
     tar -xzvf v0.33.tar.gz && \
     curl -L -O https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.2.tar.gz && \
     tar -xzvf v0.3.2.tar.gz && \
-    curl -L -O http://nginx.org/download/nginx-1.25.3.tar.gz && \
-    tar -xzvf nginx-1.25.3.tar.gz
+    curl -L -O http://nginx.org/download/nginx-1.25.1.tar.gz && \
+    tar -xzvf nginx-1.25.1.tar.gz
 
 # Build Nginx with the modules
-WORKDIR /tmp/nginx-1.25.3
+WORKDIR /tmp/nginx-1.25.1
 RUN ./configure --with-compat --add-dynamic-module=/tmp/ngx_devel_kit-0.3.2 --add-dynamic-module=/tmp/set-misc-nginx-module-0.33 && \
     make modules
 
@@ -23,7 +23,7 @@ RUN mkdir -p /etc/nginx/modules/ && \
     cp objs/ndk_http_module.so /etc/nginx/modules/
 
 # Clean up
-RUN rm -rf /tmp/nginx-1.25.3 /tmp/set-misc-nginx-module-0.33 /tmp/ngx_devel_kit-0.3.2 /tmp/*.tar.gz
+RUN rm -rf /tmp/nginx-1.25.1 /tmp/set-misc-nginx-module-0.33 /tmp/ngx_devel_kit-0.3.2 /tmp/*.tar.gz
 
 # Copy the default configuration
 COPY nginx.conf /etc/nginx/nginx.conf
