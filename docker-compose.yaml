@@ -82,6 +82,21 @@ services:
     environment:
       - SEARXNG_BASE_URL=http://localhost:8080/
 
+  khoj-proxy:
+    image: nginx:alpine
+    container_name: khoj-proxy-container
+    expose:
+      - "80"
+    volumes:
+      - ./khoj.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./.htpasswd:/etc/nginx/.htpasswd:ro
+    environment:
+      - VIRTUAL_HOST=khoj.reinhardt.ai
+      - LETSENCRYPT_HOST=khoj.reinhardt.ai
+    restart: always
+    depends_on:
+      - khoj-server
+
   khoj-server:
     depends_on:
       - khoj-database
@@ -108,7 +123,6 @@ services:
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
       - VIRTUAL_PORT=42110
-      - VIRTUAL_HOST=khoj.reinhardt.ai
       - LETSENCRYPT_HOST=khoj.reinhardt.ai
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
