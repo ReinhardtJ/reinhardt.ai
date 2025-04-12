@@ -22,47 +22,33 @@ the obsidian proxy which replaces the publish.obsidian.me url for reinhardt.ai
 a simple interval timer app hosted as a blazor web application. See
 https://github.com/ReinhardtJ/NoBullshitTimer
 
-**khoj-proxy**
-a Nginx proxy for the Khoj service with basic authentication support. It allows accessing the Khoj service with basic auth credentials.
+**khoj-server**
+The Khoj AI service that is directly accessible via the nginx reverse proxy with basic authentication.
 
-## Khoj Nginx Proxy with Basic Authentication
+## Khoj Server Configuration
 
-This repository contains a custom Nginx proxy configuration for the Khoj service with basic authentication support. The proxy allows for two methods of authentication:
-
-1. Standard basic authentication using the Authorization header
-2. Embedding credentials directly in the URL using the format: `https://username:password@domain`
+This repository contains a configuration for the Khoj service. The service is directly accessible through the main nginx reverse proxy with basic authentication.
 
 ### Architecture
 
-The system uses a two-proxy approach:
+The system uses a simple, direct approach:
 
-1. **Outer Proxy (nginx-outer)**:
+1. **Main Nginx Proxy**:
    - Handles incoming requests
-   - Extracts credentials from URLs when present
-   - Creates proper Authorization headers
-   - Forwards requests to the inner proxy
+   - Enforces basic authentication
+   - Directly forwards authenticated requests to the Khoj server
+   - Manages SSL certificates via acme-companion
 
-2. **Inner Proxy (nginx-inner)**:
-   - Enforces basic authentication using .htpasswd
-   - Proxies authenticated requests to the Khoj server
-
-This separation ensures that URL credentials are properly validated against the .htpasswd file.
+This simplified architecture removes the previous two-proxy approach and username:password@domain authentication, making the service more straightforward to access and maintain.
 
 ### How It Works
 
-The authentication flow works as follows:
+The access flow works as follows:
 
-1. When a request comes in with credentials in the URL (e.g., `/https://username:password@example.com`):
-   - The outer proxy extracts the credentials
-   - It creates a proper Authorization header
-   - It forwards the request to the inner proxy with this header
-
-2. The inner proxy:
-   - Validates the Authorization header against the .htpasswd file
-   - If valid, forwards the request to the Khoj server
-   - If invalid, returns a 401 Unauthorized response
-
-For standard requests without URL credentials, the inner proxy handles basic authentication directly.
+1. When a request comes in to khoj.reinhardt.ai:
+   - The nginx proxy requires basic authentication
+   - If authentication is successful, the request is forwarded directly to the Khoj server
+   - If authentication fails, a 401 Unauthorized response is returned
 
 ### Setup
 
@@ -76,19 +62,15 @@ For standard requests without URL credentials, the inner proxy handles basic aut
    docker-compose up -d
    ```
 
-3. Access the Khoj service using either:
-   - Standard basic auth: `https://khoj.reinhardt.ai` (will prompt for credentials)
-   - URL credentials: `https://khoj.reinhardt.ai/https://username:password@example.com`
+3. Access the Khoj service at:
+   - `https://khoj.reinhardt.ai` (will prompt for credentials)
 
 ### Security Considerations
 
-While embedding credentials in URLs is convenient for API access, it's generally not recommended for sensitive applications as:
+The setup uses standard basic authentication at the proxy level. While basic authentication provides a simple security layer, it's important to note:
 
-1. Credentials may be logged in server logs
-2. Credentials may be visible in browser history
-3. Credentials may be transmitted in Referer headers
-
-Use this feature only in trusted environments or for non-sensitive applications.
+1. Credentials are transmitted with each request (though encrypted over HTTPS)
+2. For higher security applications, consider implementing additional security measures
 
 **khoj-server and related services**
 the Khoj AI service and its dependencies (database, search, sandbox).
