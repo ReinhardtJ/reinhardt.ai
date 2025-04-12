@@ -52,10 +52,16 @@ The access flow works as follows:
 
 ### Setup
 
-1. Create an .htpasswd file with your desired credentials:
+1. Create a htpasswd directory and place your .htpasswd file there, named after the virtual host:
    ```
-   htpasswd -c .htpasswd username
+   mkdir -p htpasswd
+   # Copy your existing .htpasswd file or create a new one
+   cp .htpasswd htpasswd/khoj.reinhardt.ai
+   # Or create a new one
+   htpasswd -c htpasswd/khoj.reinhardt.ai username
    ```
+
+   The nginx-proxy container will automatically detect this file and use it for basic authentication for the khoj.reinhardt.ai domain.
 
 2. Start the services using Docker Compose:
    ```

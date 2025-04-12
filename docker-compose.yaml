@@ -13,8 +13,7 @@ services:
       - vhost:/etc/nginx/vhost.d
       - html:/usr/share/nginx/html
       - ./proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
-      - ./khoj.conf:/etc/nginx/conf.d/khoj.conf:ro
-      - ./.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./htpasswd:/etc/nginx/htpasswd
     restart: always
 
   acme-companion:
