@@ -1,0 +1,89 @@
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - ./proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
+    restart: always
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare_tunnel
+    restart: unless-stopped
+    depends_on:
+      - webserver # Optional: Ensures webserver starts before tunnel tries connecting
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    # The token is loaded from the .env file (see step 2)
+  khoj-database:
+    image: ankane/pgvector
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - khoj_db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  khoj-sandbox:
+    image: ghcr.io/khoj-ai/terrarium:latest
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+
+  khoj-search:
+    image: docker.io/searxng/searxng:latest
+    volumes:
+      - khoj_search:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+
+
+  khoj-server:
+    depends_on:
+      - khoj-database
+    image: ghcr.io/khoj-ai/khoj-cloud:latest
+    expose:
+      - "42110"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    working_dir: /app
+    volumes:
+      - khoj_config:/root/.khoj/
+      - khoj_models:/root/.cache/torch/sentence_transformers
+      - khoj_models:/root/.cache/huggingface
+    # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
+    environment:
+      - VIRTUAL_HOST=khoj.reinhardt.ai
+      - VIRTUAL_PORT=42110
+      - LETSENCRYPT_HOST=khoj.reinhardt.ai
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=khoj-database
+      - POSTGRES_PORT=5432
+      - KHOJ_DJANGO_SECRET_KEY
+      - KHOJ_DEBUG=False
+      - KHOJ_ADMIN_EMAIL
+      - KHOJ_ADMIN_PASSWORD
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET
+      - KHOJ_TERRARIUM_URL=http://khoj-sandbox:8080
+      - KHOJ_SEARXNG_URL=http://khoj-search:8080
+      - OPENAI_API_KEY
+      - GEMINI_API_KEY
+      - ANTHROPIC_API_KEY
+      - JINA_API_KEY
+      - KHOJ_DOMAIN
+      - KHOJ_ALLOWED_DOMAIN
+
+
