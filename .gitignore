@@ -2,3 +2,6 @@
 .env
 .env.safe
 htpasswd
+CLAUDE.md
+.windsurfrules
+docs
