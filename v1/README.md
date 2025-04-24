@@ -1,5 +1,6 @@
 # reinhardt.ai
 
+test
 Infrastructure for:
 - [reinhardt.ai](https://reinhardt.ai) - Personal website with Obsidian content
 - [timer.reinhardt.ai](https://timer.reinhardt.ai) - Simple interval timer application
