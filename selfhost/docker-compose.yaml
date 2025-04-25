@@ -1,6 +1,8 @@
 services:
   nginx-proxy:
     image: nginxproxy/nginx-proxy
+    expose:
+      - 80
     container_name: nginx-proxy
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
@@ -14,12 +16,9 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflare_tunnel
     restart: unless-stopped
-    depends_on:
-      - webserver # Optional: Ensures webserver starts before tunnel tries connecting
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    # The token is loaded from the .env file (see step 2)
   khoj-database:
-    image: ankane/pgvector
+    image: docker.io/pgvector/pgvector:pg15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -50,7 +49,8 @@ services:
 
   khoj-server:
     depends_on:
-      - khoj-database
+      khoj-database:
+        condition: service_healthy
     image: ghcr.io/khoj-ai/khoj-cloud:latest
     expose:
       - "42110"
@@ -63,9 +63,8 @@ services:
       - khoj_models:/root/.cache/huggingface
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
-      - VIRTUAL_HOST=khoj.reinhardt.ai
+      - VIRTUAL_HOST=khoj.servinghorizon.site
       - VIRTUAL_PORT=42110
-      - LETSENCRYPT_HOST=khoj.reinhardt.ai
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -87,3 +86,11 @@ services:
       - KHOJ_ALLOWED_DOMAIN
 
 
+volumes:
+  certs:
+  vhost:
+  html:
+  khoj_config:
+  khoj_db:
+  khoj_models:
+  khoj_search:
