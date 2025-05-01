@@ -49,7 +49,7 @@ services:
   khoj-middleware:
     build: ./khoj-api-middleware
     environment:
-      - KHOJ_SERVICE_URL=http://khoj-server:42100
+      - KHOJ_SERVICE_URL=http://khoj-server:42110
       - KHOJ_API_TOKEN
       - VIRTUAL_HOST=khoj-api.servinghorizon.site
       - VIRTUAL_PORT=80
