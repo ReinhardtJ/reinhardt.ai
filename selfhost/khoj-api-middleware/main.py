@@ -1,30 +1,42 @@
-from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
-import httpx
+from flask import Flask, request, Response
+import requests
 import os
+from flask_httpauth import HTTPTokenAuth
 
-app = FastAPI()
+app = Flask(__name__)
+auth = HTTPTokenAuth(scheme="Bearer")
 
 KHOJ_SERVICE_URL = os.environ.get("KHOJ_SERVICE_URL")
 KHOJ_API_TOKEN = os.environ.get("KHOJ_API_TOKEN")
 
 if None in [KHOJ_SERVICE_URL, KHOJ_API_TOKEN]:
-    raise EnvironmentError(f'Environment not set: KHOJ_SERVICE_URL={KHOJ_SERVICE_URL}, KHOJ_API_TOKEN={KHOJ_API_TOKEN}')
+    raise EnvironmentError('Required environment variables not set')
 
-@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
-async def proxy_api(request: Request, path: str):
-    # Check for Bearer token
-    auth = request.headers.get("authorization")
-    expected_bearer = f"Bearer {KHOJ_API_TOKEN}"
 
-    if not (auth and auth.startswith("Bearer ") and auth == expected_bearer):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+@auth.verify_token
+def verify_token(token):
+    return token == KHOJ_API_TOKEN
 
+
+@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
+@auth.login_required
+def proxy(path):
     # Forward request to actual backend
-    async with httpx.AsyncClient() as client:
-        backend_url = f"{KHOJ_SERVICE_URL}/{path}"
-        method = request.method
-        headers = dict(request.headers)
-        body = await request.body()
-        resp = await client.request(method, backend_url, headers=headers, content=body)
-        return StreamingResponse(resp.aiter_raw(), status_code=resp.status_code, headers=resp.headers)
+    resp = requests.request(
+        method=request.method,
+        url=f"{KHOJ_SERVICE_URL}/{path}",
+        headers={key: value for key, value in request.headers.items() if key.lower() != 'host'},
+        data=request.get_data(),
+        cookies=request.cookies,
+        allow_redirects=False)
+
+    excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+    headers = [(name, value) for name, value in resp.raw.headers.items()
+              if name.lower() not in excluded_headers]
+
+    response = Response(resp.content, resp.status_code, headers)
+    return response
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=80)
