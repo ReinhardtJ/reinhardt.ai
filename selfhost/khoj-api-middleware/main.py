@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 import httpx
 import os
-import base64
 
 app = FastAPI()
 
@@ -14,10 +13,11 @@ if None in [KHOJ_SERVICE_URL, KHOJ_API_TOKEN]:
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 async def proxy_api(request: Request, path: str):
-    # Check for Basic Auth header
+    # Check for Bearer token
     auth = request.headers.get("authorization")
-    expected = "Basic " + base64.b64encode(f"client:{KHOJ_API_TOKEN}".encode()).decode()
-    if auth != expected:
+    expected_bearer = f"Bearer {KHOJ_API_TOKEN}"
+
+    if not (auth and auth.startswith("Bearer ") and auth == expected_bearer):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     # Forward request to actual backend
