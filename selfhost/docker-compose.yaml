@@ -47,7 +47,7 @@ services:
       - SEARXNG_BASE_URL=http://localhost:8080/
 
   khoj-middleware:
-    build: ./khoj-middleware
+    build: ./khoj-api-middleware
     environment:
       - KHOJ_SERVICE_URL=http://khoj-server:42100
       - KHOJ_API_TOKEN
