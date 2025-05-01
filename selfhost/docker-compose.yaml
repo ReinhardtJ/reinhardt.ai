@@ -51,7 +51,7 @@ services:
     environment:
       - KHOJ_SERVICE_URL=http://khoj-server:42110
       - KHOJ_API_TOKEN
-      - VIRTUAL_HOST=khoj-api.servinghorizon.site
+      - VIRTUAL_HOST=khoj-api.reinhardt.ai
       - VIRTUAL_PORT=80
     expose:
       - "80"
@@ -70,9 +70,8 @@ services:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
       - khoj_models:/root/.cache/huggingface
-    # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
-      - VIRTUAL_HOST=khoj.servinghorizon.site
+      - VIRTUAL_HOST=khoj.reinhardt.ai
       - VIRTUAL_PORT=42110
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
@@ -94,6 +93,18 @@ services:
       - KHOJ_DOMAIN
       - KHOJ_ALLOWED_DOMAIN
 
+  agent-zero-server:
+    image: frdel/agent-zero-run:latest
+    container_name: agent-zero-server
+    expose:
+      - "80"
+    volumes:
+      - agent_zero_data:/a0
+    environment:
+      - VIRTUAL_PORT=80
+      - VIRTUAL_HOST=a0.reinhardt.ai
+    restart: always
+
 
 volumes:
   certs:
@@ -103,3 +114,4 @@ volumes:
   khoj_db:
   khoj_models:
   khoj_search:
+  agent_zero_data:
