@@ -48,13 +48,13 @@ services:
 
   khoj-middleware:
     build: ./khoj-middleware
-    environment: 
+    environment:
       - KHOJ_SERVICE_URL=http://khoj-server:42100
       - KHOJ_API_TOKEN
-      - VIRTUAL_HOST=api.khoj.servinghorizon.site
+      - VIRTUAL_HOST=khoj-api.servinghorizon.site
     expose:
       - 80
-  
+
   khoj-server:
     depends_on:
       khoj-database:
