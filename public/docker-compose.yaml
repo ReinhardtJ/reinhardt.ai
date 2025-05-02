@@ -48,3 +48,9 @@ services:
       - VIRTUAL_HOST=timer.reinhardt.ai
       - LETSENCRYPT_HOST=timer.reinhardt.ai
     restart: always
+
+volumes:
+  certs:
+  vhost:
+  html:
+  acme:
