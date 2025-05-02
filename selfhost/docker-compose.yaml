@@ -121,8 +121,8 @@ services:
     expose:
       - '2283'
     depends_on:
-      - redis
-      - database
+      - immich-redis
+      - immich-database
     restart: always
 
   immich-machine-learning:
