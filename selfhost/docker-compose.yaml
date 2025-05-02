@@ -90,8 +90,8 @@ services:
       - GEMINI_API_KEY
       - ANTHROPIC_API_KEY
       - JINA_API_KEY
-      - KHOJ_DOMAIN
-      - KHOJ_ALLOWED_DOMAIN
+      - KHOJ_DOMAIN=khoj.reinhardt.ai
+      - KHOJ_ALLOWED_DOMAIN=khoj.reinhardt.ai
 
   agent-zero-server:
     image: frdel/agent-zero-run:latest
