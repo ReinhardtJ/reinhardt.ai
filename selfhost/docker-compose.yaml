@@ -14,10 +14,12 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: cloudflare_tunnel
+    container_name: cloudflare-tunnel
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+
   khoj-database:
+    container_name: khoj-database
     image: docker.io/pgvector/pgvector:pg15
     environment:
       POSTGRES_USER: postgres
@@ -32,6 +34,7 @@ services:
       retries: 5
 
   khoj-sandbox:
+    container_name: khoj-sandbox
     image: ghcr.io/khoj-ai/terrarium:latest
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
@@ -40,6 +43,7 @@ services:
       retries: 2
 
   khoj-search:
+    container_name: khoj-search
     image: docker.io/searxng/searxng:latest
     volumes:
       - khoj_search:/etc/searxng
@@ -47,6 +51,7 @@ services:
       - SEARXNG_BASE_URL=http://localhost:8080/
 
   khoj-middleware:
+    container_name: khoj-middleware
     build: ./khoj-api-middleware
     environment:
       - KHOJ_SERVICE_URL=http://khoj-server:42110
@@ -57,6 +62,7 @@ services:
       - "80"
 
   khoj-server:
+    container_name: khoj-server
     depends_on:
       khoj-database:
         condition: service_healthy
@@ -106,6 +112,7 @@ services:
     restart: always
 
   immich-server:
+    container_name: immich-server
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
     # extends:
     #   file: hwaccel.transcoding.yml
@@ -143,12 +150,14 @@ services:
     restart: always
 
   immich-redis:
+    container_name: immich-redis
     image: docker.io/valkey/valkey:8-bookworm@sha256:42cba146593a5ea9a622002c1b7cba5da7be248650cbb64ecb9c6c33d29794b1
     healthcheck:
       test: redis-cli ping || exit 1
     restart: always
 
   immich-database:
+    container_name: immich-database
     image: docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:739cdd626151ff1f796dc95a6591b55a714f341c737e27f045019ceabf8e8c52
     environment:
       - POSTGRES_PASSWORD
