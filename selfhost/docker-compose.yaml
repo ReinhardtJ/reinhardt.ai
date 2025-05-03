@@ -126,6 +126,7 @@ services:
       - immich-redis
       - immich-database
     restart: always
+    user: "1000:1000"
 
   immich-machine-learning:
     # For hardware acceleration, add one of -[armnn, cuda, rocm, openvino, rknn] to the image tag.
