@@ -13,6 +13,18 @@ services:
       - ./proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
     restart: always
 
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+    restart: always
 
   khoj-database:
     container_name: khoj-database
@@ -64,6 +76,7 @@ services:
       - khoj_models:/root/.cache/huggingface
     environment:
       - VIRTUAL_HOST=khoj.reinhardt.ai
+      - LETSENCRYPT_HOST=khoj.reinhardt.ai
       - VIRTUAL_PORT=42110
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
@@ -95,6 +108,7 @@ services:
     environment:
       - VIRTUAL_PORT=80
       - VIRTUAL_HOST=a0.reinhardt.ai
+      - LETSENCRYPT_HOST=a0.reinhardt.ai
     restart: always
 
   immich-server:
@@ -110,6 +124,7 @@ services:
     environment:
       - VIRTUAL_HOST=immich.reinhardt.ai
       - VIRTUAL_PORT=2283
+      - LETSENCRYPT_HOST=immich.reinhardt.ai
       - REDIS_HOSTNAME
     env_file:
       - .env
