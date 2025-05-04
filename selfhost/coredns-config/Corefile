@@ -1,0 +1,5 @@
+reinhardt.ai:53 {
+    tailscale reinhardt.ai
+    log
+    errors
+}
