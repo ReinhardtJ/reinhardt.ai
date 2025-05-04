@@ -191,3 +191,4 @@ volumes:
   khoj_search:
   agent_zero_data:
   model-cache:
+  acme:
