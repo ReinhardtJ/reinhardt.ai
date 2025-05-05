@@ -165,8 +165,7 @@ services:
       - GEMINI_API_KEY
       - ANTHROPIC_API_KEY
       - JINA_API_KEY
-#      - KHOJ_DOMAIN=khoj.tail94b8d3.ts.net
-#      - KHOJ_ALLOWED_DOMAIN=127.0.0.1
+      - KHOJ_DOMAIN=khoj.tail94b8d3.ts.net
       - KHOJ_NO_HTTPS=True
     command: --host="0.0.0.0" --port=42110 -vv --non-interactive
 
