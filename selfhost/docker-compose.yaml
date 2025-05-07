@@ -1,83 +1,177 @@
 services:
-  nginx-proxy:
-    image: nginxproxy/nginx-proxy
-    ports:
-      - "80:80"
-      - "443:443"
-    container_name: nginx-proxy
+  # coredns
+  coredns:
+    image: ghcr.io/damomurf/coredns-tailscale:v0.3.14
+    container_name: coredns
+    restart: unless-stopped
+    command: -conf /etc/coredns/Corefile
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - dns_net
+    hostname: dns
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - certs:/etc/nginx/certs
-      - vhost:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-      - ./proxy.conf:/etc/nginx/conf.d/proxy.conf:ro
+      - ./coredns-config:/etc/coredns
+    logging:
+      options:
+        max-size: "50m"
+
+  coredns-ts:
+    image: tailscale/tailscale:latest
+    container_name: coredns-ts
+    environment:
+      - TS_AUTHKEY
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ./ts-data/coredns-tailscale:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+    network_mode:
+      service:coredns
+    logging:
+      options:
+        max-size: "50m"
+
+
+  # immich
+  immich-ts:
+    image: tailscale/tailscale:latest
+    container_name: immich-ts
+    hostname: immich
+    environment:
+      - TS_AUTHKEY
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_SERVE_CONFIG=/config/immich-serve.json
+      - TS_EXTRA_ARGS=--advertise-tags=tag:cname-immich
+    volumes:
+      - ./ts-data/immich:/var/lib/tailscale
+      - ./ts-config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+    networks:
+      - immich_net
+    logging:
+      options:
+        max-size: "50m"
+
+  immich-server:
+    container_name: immich-server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    network_mode: service:immich-ts
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
+    depends_on:
+      - immich-ts
+      - immich-redis
+      - immich-database
     restart: always
+    logging:
+      options:
+        max-size: "50m"
 
-  acme-companion:
-    image: nginxproxy/acme-companion
-    container_name: nginx-proxy-acme
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - certs:/etc/nginx/certs
-      - vhost:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-      - acme:/etc/acme.sh
+      - model-cache:/cache
+    env_file:
+      - .env
     environment:
-      - NGINX_PROXY_CONTAINER=nginx-proxy
+      - REDIS_HOSTNAME=immich-redis
     restart: always
+    networks:
+      - immich_net
+    logging:
+      options:
+        max-size: "50m"
 
-  khoj-database:
-    container_name: khoj-database
-    image: docker.io/pgvector/pgvector:pg15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    volumes:
-      - khoj_db:/var/lib/postgresql/data/
+  immich-redis:
+    container_name: immich-redis
+    image: docker.io/valkey/valkey:8-bookworm@sha256:42cba146593a5ea9a622002c1b7cba5da7be248650cbb64ecb9c6c33d29794b1
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: redis-cli ping || exit 1
+    restart: always
+    networks:
+      - immich_net
+    logging:
+      options:
+        max-size: "50m"
 
-  khoj-sandbox:
-    container_name: khoj-sandbox
-    image: ghcr.io/khoj-ai/terrarium:latest
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 2
-
-  khoj-search:
-    container_name: khoj-search
-    image: docker.io/searxng/searxng:latest
-    volumes:
-      - khoj_search:/etc/searxng
+  immich-database:
+    container_name: immich-database
+    image: docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:739cdd626151ff1f796dc95a6591b55a714f341c737e27f045019ceabf8e8c52
     environment:
-      - SEARXNG_BASE_URL=http://localhost:8080/
+      - POSTGRES_PASSWORD
+      - POSTGRES_USER
+      - POSTGRES_DB
+      - REDIS_HOSTNAME=immich-redis
+      - POSTGRES_INITDB_ARGS="--data-checksums"
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    healthcheck:
+      test: >-
+        pg_isready --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" || exit 1; Chksum="$$(psql --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
+      interval: 5m
+      start_interval: 30s
+      start_period: 5m
+    command: >-
+      postgres -c shared_preload_libraries=vectors.so -c 'search_path="$$user", public, vectors' -c logging_collector=on -c max_wal_size=2GB -c shared_buffers=512MB -c wal_compression=on
+    restart: always
+    networks:
+      - immich_net
+    logging:
+      options:
+        max-size: "50m"
 
+  # KHOJ
+  khoj-ts:
+    image: tailscale/tailscale:latest
+    container_name: khoj-ts
+    hostname: khoj
+    environment:
+      - TS_AUTHKEY
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_SERVE_CONFIG=/config/khoj-serve.json
+    volumes:
+      - ./ts-data/khoj:/var/lib/tailscale
+      - ./ts-config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+    networks:
+      - khoj_net
+    logging:
+      options:
+        max-size: "50m"
 
   khoj-server:
     container_name: khoj-server
     depends_on:
       khoj-database:
         condition: service_healthy
-    image: ghcr.io/khoj-ai/khoj-cloud:latest
-    expose:
-      - "42110"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      khoj-ts:
+        condition: service_started
+    image: ghcr.io/khoj-ai/khoj:latest
+    network_mode: service:khoj-ts
     working_dir: /app
     volumes:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
       - khoj_models:/root/.cache/huggingface
     environment:
-      - VIRTUAL_HOST=khoj.reinhardt.ai
-      - LETSENCRYPT_HOST=khoj.reinhardt.ai
-      - VIRTUAL_PORT=42110
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -95,100 +189,113 @@ services:
       - GEMINI_API_KEY
       - ANTHROPIC_API_KEY
       - JINA_API_KEY
-      - KHOJ_DOMAIN=khoj.reinhardt.ai
-      - KHOJ_ALLOWED_DOMAIN=khoj.reinhardt.ai
+      - KHOJ_DOMAIN=khoj.tail94b8d3.ts.net
+      - KHOJ_NO_HTTPS=True
+    command: --host="0.0.0.0" --port=42110 -vv --non-interactive
+    restart: unless-stopped
+    logging:
+      options:
+        max-size: "50m"
+
+  khoj-database:
+    container_name: khoj-database
+    image: docker.io/pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - khoj_db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - khoj_net
+    logging:
+      options:
+        max-size: "50m"
+
+  khoj-sandbox:
+    container_name: khoj-sandbox
+    image: ghcr.io/khoj-ai/terrarium:latest
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+    networks:
+      - khoj_net
+    logging:
+      options:
+        max-size: "50m"
+
+  khoj-search:
+    container_name: khoj-search
+    image: docker.io/searxng/searxng:latest
+    volumes:
+      - khoj_search:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    networks:
+      - khoj_net
+    logging:
+      options:
+        max-size: "50m"
+
+
+  # Agent Zero
+  a0-ts:
+    image: tailscale/tailscale:latest
+    container_name: a0-ts
+    hostname: a0
+    environment:
+      - TS_AUTHKEY
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_SERVE_CONFIG=/config/a0-serve.json
+    volumes:
+      - ./ts-data/a0:/var/lib/tailscale
+      - ./ts-config:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+    networks:
+      - a0_net
+    logging:
+      options:
+        max-size: "50m"
 
   agent-zero-server:
     image: frdel/agent-zero-run:latest
     container_name: agent-zero-server
-    expose:
-      - "80"
+    network_mode: service:a0-ts
     volumes:
       - agent_zero_data:/a0
-    environment:
-      - VIRTUAL_PORT=80
-      - VIRTUAL_HOST=a0.reinhardt.ai
-      - LETSENCRYPT_HOST=a0.reinhardt.ai
     restart: always
-
-  immich-server:
-    container_name: immich-server
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
-    # extends:
-    #   file: hwaccel.transcoding.yml
-    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
-    volumes:
-      # Do not edit the next line. If you want to change the media storage location on your system, edit the value of UPLOAD_LOCATION in the .env file
-      - ${UPLOAD_LOCATION}:/usr/src/app/upload
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      - VIRTUAL_HOST=immich.reinhardt.ai
-      - VIRTUAL_PORT=2283
-      - LETSENCRYPT_HOST=immich.reinhardt.ai
-      - REDIS_HOSTNAME
-    env_file:
-      - .env
-    expose:
-      - '2283'
     depends_on:
-      - immich-redis
-      - immich-database
-    restart: always
+      - a0-ts
+    logging:
+      options:
+        max-size: "50m"
 
-  immich-machine-learning:
-    # For hardware acceleration, add one of -[armnn, cuda, rocm, openvino, rknn] to the image tag.
-    # Example tag: ${IMMICH_VERSION:-release}-cuda
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
-    # extends: # uncomment this section for hardware acceleration - see https://immich.app/docs/features/ml-hardware-acceleration
-    #   file: hwaccel.ml.yml
-    #   service: cpu # set to one of [armnn, cuda, rocm, openvino, openvino-wsl, rknn] for accelerated inference - use the `-wsl` version for WSL2 where applicable
-    volumes:
-      - model-cache:/cache
-    env_file:
-      - .env
-    environment:
-      - REDIS_HOSTNAME
-    restart: always
-
-  immich-redis:
-    container_name: immich-redis
-    image: docker.io/valkey/valkey:8-bookworm@sha256:42cba146593a5ea9a622002c1b7cba5da7be248650cbb64ecb9c6c33d29794b1
-    healthcheck:
-      test: redis-cli ping || exit 1
-    restart: always
-
-  immich-database:
-    container_name: immich-database
-    image: docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:739cdd626151ff1f796dc95a6591b55a714f341c737e27f045019ceabf8e8c52
-    environment:
-      - POSTGRES_PASSWORD
-      - POSTGRES_USER
-      - POSTGRES_DB
-      - REDIS_HOSTNAME
-      - POSTGRES_INITDB_ARGS="--data-checksums"
-    volumes:
-      # Do not edit the next line. If you want to change the database storage location on your system, edit the value of DB_DATA_LOCATION in the .env file
-      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
-    healthcheck:
-      test: >-
-        pg_isready --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" || exit 1; Chksum="$$(psql --dbname="$${POSTGRES_DB}" --username="$${POSTGRES_USER}" --tuples-only --no-align --command='SELECT COALESCE(SUM(checksum_failures), 0) FROM pg_stat_database')"; echo "checksum failure count is $$Chksum"; [ "$$Chksum" = '0' ] || exit 1
-      interval: 5m
-      start_interval: 30s
-      start_period: 5m
-    command: >-
-      postgres -c shared_preload_libraries=vectors.so -c 'search_path="$$user", public, vectors' -c logging_collector=on -c max_wal_size=2GB -c shared_buffers=512MB -c wal_compression=on
-    restart: always
-
-
+networks:
+  dns_net:
+    driver: bridge
+  immich_net:
+    driver: bridge
+  khoj_net:
+    driver: bridge
+  a0_net:
+    driver: bridge
 
 volumes:
-  certs:
-  vhost:
-  html:
   khoj_config:
   khoj_db:
   khoj_models:
   khoj_search:
   agent_zero_data:
   model-cache:
-  acme:
