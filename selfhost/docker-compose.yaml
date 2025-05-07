@@ -55,7 +55,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
-    restart: unless-stopped
+    restart: on-failure:10
     networks:
       - immich_net
     logging:
@@ -75,7 +75,7 @@ services:
       - immich-ts
       - immich-redis
       - immich-database
-    restart: always
+    restart: on-failure:10
     logging:
       options:
         max-size: "50m"
@@ -88,7 +88,7 @@ services:
       - .env
     environment:
       - REDIS_HOSTNAME=immich-redis
-    restart: always
+    restart: on-failure:10
     networks:
       - immich_net
     logging:
@@ -100,7 +100,7 @@ services:
     image: docker.io/valkey/valkey:8-bookworm@sha256:42cba146593a5ea9a622002c1b7cba5da7be248650cbb64ecb9c6c33d29794b1
     healthcheck:
       test: redis-cli ping || exit 1
-    restart: always
+    restart: on-failure:10
     networks:
       - immich_net
     logging:
@@ -126,7 +126,7 @@ services:
       start_period: 5m
     command: >-
       postgres -c shared_preload_libraries=vectors.so -c 'search_path="$$user", public, vectors' -c logging_collector=on -c max_wal_size=2GB -c shared_buffers=512MB -c wal_compression=on
-    restart: always
+    restart: on-failure:10
     networks:
       - immich_net
     logging:
@@ -150,7 +150,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
-    restart: unless-stopped
+    restart: on-failure:10
     networks:
       - khoj_net
     logging:
@@ -192,7 +192,7 @@ services:
       - KHOJ_DOMAIN=khoj.tail94b8d3.ts.net
       - KHOJ_NO_HTTPS=True
     command: --host="0.0.0.0" --port=42110 -vv --non-interactive
-    restart: unless-stopped
+    restart: on-failure:10
     logging:
       options:
         max-size: "50m"
@@ -216,6 +216,7 @@ services:
     logging:
       options:
         max-size: "50m"
+    restart: on-failure:10
 
   khoj-sandbox:
     container_name: khoj-sandbox
@@ -230,6 +231,7 @@ services:
     logging:
       options:
         max-size: "50m"
+    restart: on-failure:10
 
   khoj-search:
     container_name: khoj-search
@@ -243,6 +245,7 @@ services:
     logging:
       options:
         max-size: "50m"
+    restart: on-failure:10
 
 
   # Agent Zero
@@ -262,7 +265,7 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
-    restart: unless-stopped
+    restart: on-failure:10
     networks:
       - a0_net
     logging:
@@ -275,7 +278,7 @@ services:
     network_mode: service:a0-ts
     volumes:
       - agent_zero_data:/a0
-    restart: always
+    restart: on-failure:10
     depends_on:
       - a0-ts
     logging:
