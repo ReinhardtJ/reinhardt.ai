@@ -1,37 +1,35 @@
 services:
-  # coredns
-  coredns:
-    image: ghcr.io/damomurf/coredns-tailscale:v0.3.14
-    container_name: coredns
-    restart: unless-stopped
-    command: -conf /etc/coredns/Corefile
-    cap_add:
-      - NET_ADMIN
-    networks:
-      - dns_net
-    hostname: dns
+  # DNS Nameserver
+  dns:
+    container_name: dns
+    image: coredns/coredns:latest
     volumes:
-      - ./coredns-config:/etc/coredns
-    logging:
-      options:
-        max-size: "50m"
+      - ./coredns-config/Corefile:/Corefile
+    restart: on-failure:10
+    network_mode: service:dns-ts
+    depends_on:
+      - dns-ts
+    cap_add:
+      - NET_BIND_SERVICE
 
-  coredns-ts:
+  dns-ts:
+    container_name: dns-ts
+    hostname: dns
     image: tailscale/tailscale:latest
-    container_name: coredns-ts
     environment:
       - TS_AUTHKEY
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
     volumes:
-      - ./ts-data/coredns-tailscale:/var/lib/tailscale
+      - ./ts-data/dns-tailscale:/var/lib/tailscale
+      - ./ts-config:/config
     devices:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
-    restart: unless-stopped
-    network_mode:
-      service:coredns
+    restart: on-failure:10
+    networks:
+      - dns_net
     logging:
       options:
         max-size: "50m"
@@ -133,6 +131,7 @@ services:
       options:
         max-size: "50m"
 
+
   # KHOJ
   khoj-ts:
     image: tailscale/tailscale:latest
@@ -143,6 +142,7 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
       - TS_SERVE_CONFIG=/config/khoj-serve.json
+
     volumes:
       - ./ts-data/khoj:/var/lib/tailscale
       - ./ts-config:/config
@@ -189,9 +189,9 @@ services:
       - GEMINI_API_KEY
       - ANTHROPIC_API_KEY
       - JINA_API_KEY
-      - KHOJ_DOMAIN=khoj.tail94b8d3.ts.net
+      - KHOJ_DOMAIN=khoj.reinhardt.ai
       - KHOJ_NO_HTTPS=True
-    command: --host="0.0.0.0" --port=42110 -vv --non-interactive
+    command: --host="0.0.0.0" --port=80 -vv --non-interactive
     restart: on-failure:10
     logging:
       options:
@@ -208,9 +208,9 @@ services:
       - khoj_db:/var/lib/postgresql/data/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 1s
       timeout: 10s
-      retries: 5
+      retries: 30
     networks:
       - khoj_net
     logging:
@@ -294,6 +294,8 @@ networks:
     driver: bridge
   a0_net:
     driver: bridge
+  caddy_net:
+    driver: bridge
 
 volumes:
   khoj_config:
@@ -302,3 +304,5 @@ volumes:
   khoj_search:
   agent_zero_data:
   model-cache:
+
+

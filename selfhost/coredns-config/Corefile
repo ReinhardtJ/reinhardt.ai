@@ -1,5 +1,16 @@
-reinhardt.ai:53 {
-    tailscale reinhardt.ai
-    log
-    errors
+.:53 {
+    log stdout # Log all queries and responses to stdout
+    errors stdout # Log errors to stdout
+    # Forward non-local queries to 9.9.9.9
+    forward . 9.9.9.9 {
+      # Optional: specify health check interval
+      # health_check 5s
+    }
+    # Define your local zone
+    hosts {
+      100.69.83.74 khoj.reinhardt.ai
+      fallthrough
+    }
+    # Optional: respond to whoami queries
+    # whoami
 }
