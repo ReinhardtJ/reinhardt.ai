@@ -95,6 +95,27 @@ services:
       options:
         max-size: "50m"
 
+  immich-backup:
+    build:
+      context: .
+      dockerfile: immich-backup.Dockerfile
+    container_name: immich-backup
+    network_mode: service:immich-ts
+    volumes:
+      - ./immich-library:/immich-library:ro
+      - ./immich-backup-logs:/logs
+    environment:
+      - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}
+      - RCLONE_REMOTE_USER=${RCLONE_REMOTE_USER}
+      - RCLONE_SSH_KEY=${RCLONE_SSH_KEY}
+    env_file:
+      - .env
+    depends_on:
+      - immich-ts
+    restart: on-failure:10
+    logging:
+      options:
+        max-size: "50m"
 
   # KHOJ
   khoj-ts:
@@ -246,7 +267,7 @@ services:
       - a0-ts
     logging:
       options:
-        max-size: "50m"
+        max-size: "50m"  
 
 networks:
   immich_net:
