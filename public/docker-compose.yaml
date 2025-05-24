@@ -49,6 +49,19 @@ services:
       - LETSENCRYPT_HOST=timer.reinhardt.ai
     restart: always
 
+  agent-zero-server:
+    image: frdel/agent-zero-run:latest
+    container_name: agent-zero-server
+    volumes:
+      - ./agent_zero_data:/a0
+    expose:
+      - "80"
+    environment:
+      - VIRTUAL_HOST=a0.reinhardt.ai
+      - LETSENCRYPT_HOST=a0.reinhardt.ai
+    restart: always
+
+
 volumes:
   certs:
   vhost:
