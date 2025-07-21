@@ -262,6 +262,7 @@ services:
 
   stirling-pdf:
     image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
+    container_name: stirling-pdf
     volumes:
       - ./StirlingPDF/trainingData:/usr/share/tessdata # Required for extra OCR languages
       - ./StirlingPDF/extraConfigs:/configs
@@ -309,6 +310,7 @@ networks:
     driver: bridge
   stirling_pdf_net:
     driver: bridge
+
 
 volumes:
   khoj_config:
