@@ -8,7 +8,6 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
       - TS_SERVE_CONFIG=/config/khoj-serve.json
-
     volumes:
       - ./ts-data/khoj:/var/lib/tailscale
       - ./ts-config:/config
