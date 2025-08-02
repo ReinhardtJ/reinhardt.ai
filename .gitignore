@@ -10,3 +10,7 @@ selfhost/immich-db-data
 selfhost/immich-library
 selfhost/tailscale-docker-examples
 selfhost/ts-data
+selfhost/StirlingPDF
+tailscale.crt
+tailscale.key
+settings.json
