@@ -88,13 +88,12 @@ services:
 
   immich-backup:
     build:
-      context: .
-      dockerfile: ./immich-backup.Dockerfile
+      context: ./immich-backup
     container_name: immich-backup
     network_mode: service:immich-ts
     volumes:
       - ./immich-library:/immich-library:ro
-      - ./immich-backup-logs:/logs
+      - ./immich-backup:/immich-backup
     environment:
       - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}
       - RCLONE_REMOTE_USER=${RCLONE_REMOTE_USER}
