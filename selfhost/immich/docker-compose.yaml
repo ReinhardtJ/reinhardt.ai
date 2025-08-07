@@ -94,6 +94,7 @@ services:
     volumes:
       - ./immich-library:/immich-library:ro
       - ./immich-backup:/immich-backup
+      - ./immich-db-backups:/immich-db-backups
     environment:
       - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}
       - RCLONE_REMOTE_USER=${RCLONE_REMOTE_USER}
