@@ -98,12 +98,32 @@ services:
     networks:
       - reinhardt_net
 
+  affine-backup-ts:
+    image: tailscale/tailscale:latest
+    container_name: affine-backup-ts
+    hostname: affine-backup
+    environment:
+      - TS_AUTHKEY
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ./ts-data/affine-backup:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    restart: on-failure:10
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+
   affine-backup:
     build:
       context: ./affine-backup
     container_name: affine-backup
-    networks:
-      - reinhardt_net
+    network_mode: service:affine-backup-ts
     volumes:
       - ./affine-data/self-host/config:/affine-data/config:ro
       - ./affine-data/self-host/storage:/affine-data/storage:ro
@@ -116,6 +136,7 @@ services:
     env_file:
       - .env
     depends_on:
+      - affine-backup-ts
       - postgres
     restart: on-failure:10
     logging:
