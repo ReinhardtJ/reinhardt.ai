@@ -10,6 +10,8 @@ services:
       - certs:/etc/nginx/certs
       - vhost:/etc/nginx/vhost.d
       - html:/usr/share/nginx/html
+    networks:
+      - reinhardt_net
     restart: always
 
   acme-companion:
@@ -23,6 +25,8 @@ services:
       - acme:/etc/acme.sh
     environment:
       - NGINX_PROXY_CONTAINER=nginx-proxy
+    networks:
+      - reinhardt_net
     restart: always
 
   obsidian-proxy:
@@ -35,6 +39,8 @@ services:
     environment:
       - VIRTUAL_HOST=reinhardt.ai
       - LETSENCRYPT_HOST=reinhardt.ai
+    networks:
+      - reinhardt_net
     restart: always
 
   no-bullshit-timer:
@@ -47,6 +53,8 @@ services:
     environment:
       - VIRTUAL_HOST=timer.reinhardt.ai
       - LETSENCRYPT_HOST=timer.reinhardt.ai
+    networks:
+      - reinhardt_net
     restart: always
 
   agent-zero-server:
@@ -59,6 +67,8 @@ services:
     environment:
       - VIRTUAL_HOST=a0.reinhardt.ai
       - LETSENCRYPT_HOST=a0.reinhardt.ai
+    networks:
+      - reinhardt_net
     restart: always
 
 volumes:
@@ -66,3 +76,8 @@ volumes:
   vhost:
   html:
   acme:
+
+networks:
+  reinhardt_net:
+    driver: bridge
+    name: reinhardt_net
