@@ -27,13 +27,19 @@ services:
     container_name: agent-zero-server
     network_mode: service:a0-ts
     volumes:
-      - ./agent_zero_data:/a0
+      - ./agent_zero_data/docs:/a0/docs
+      - ./agent_zero_data/instruments:/a0/instruments
+      - ./agent_zero_data/knowledge:/a0/knowledge
+      - ./agent_zero_data/logs:/a0/logs
+      - ./agent_zero_data/memory:/a0/memory
+      - ./agent_zero_data/prompts:/a0/prompts
+      - ./agent_zero_data/work_dir:/a0/work_dir
     restart: on-failure:10
     depends_on:
       - a0-ts
     logging:
       options:
-        max-size: "50m"  
+        max-size: "50m"
 
 networks:
   a0_net:
