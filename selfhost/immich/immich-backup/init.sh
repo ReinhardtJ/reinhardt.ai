@@ -2,6 +2,8 @@
 
 # Create log directory if it doesn't exist
 mkdir -p /immich-backup
+mkdir -p /immich-db-backups
+mkdir -p /immich-backup-logs
 
 # Create SSH directory with proper permissions
 mkdir -p /root/.ssh

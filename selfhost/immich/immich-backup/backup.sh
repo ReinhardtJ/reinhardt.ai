@@ -1,11 +1,8 @@
 #!/bin/sh
 
 # Define log file path
-LOG_FILE="/immich-backup/immich-backup.log"
+LOG_FILE="/immich-backup-logs/immich-backup.log"
 DB_BACKUP_DIR="/immich-db-backups"
-
-# Create database backup directory if it doesn't exist
-mkdir -p "$DB_BACKUP_DIR"
 
 # Log backup start with timestamp
 echo "=== Starting backup at $(date) ===" >> "$LOG_FILE" 2>&1
