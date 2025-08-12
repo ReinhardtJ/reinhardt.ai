@@ -17,7 +17,7 @@ services:
       - NET_ADMIN
     restart: on-failure:10
     networks:
-      - immich_net
+      - immich_backup_net
     logging:
       options:
         max-size: "50m"
@@ -25,14 +25,18 @@ services:
   immich-server:
     container_name: immich-server
     image: ghcr.io/immich-app/immich-server:release
-    network_mode: service:immich-ts
+    networks:
+      - reinhardt_net
     volumes:
-      - ${UPLOAD_LOCATION}:/data
+      - ${LIBRARY_LOCATION}:/data
       - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
+    environment:
+      - VIRTUAL_HOST=immich.reinhardt.ai
+      - LETSENCRYPT_HOST=immich.reinhardt.ai
+      - VIRTUAL_PORT=2283
     depends_on:
-      - immich-ts
       - redis
       - database
     restart: on-failure:10
@@ -51,7 +55,7 @@ services:
       - REDIS_HOSTNAME=redis
     restart: on-failure:10
     networks:
-      - immich_net
+      - reinhardt_net
     logging:
       options:
         max-size: "50m"
@@ -62,7 +66,7 @@ services:
     healthcheck:
       test: redis-cli ping || exit 1
     networks:
-      - immich_net
+      - reinhardt_net
     restart: on-failure:10
     logging:
       options:
@@ -81,7 +85,7 @@ services:
     shm_size: 128mb
     restart: on-failure:10
     networks:
-      - immich_net
+      - reinhardt_net
     logging:
       options:
         max-size: "50m"
@@ -92,10 +96,10 @@ services:
     container_name: immich-backup
     network_mode: service:immich-ts
     volumes:
-      - ./immich-library:/immich-library:ro
+      - ${LIBRARY_LOCATION}:/immich-library:ro
       - ./immich-backup:/immich-backup
-      - ./immich-db-backups:/immich-db-backups
-      - ./immich-backup-logs:/immich-backup-logs
+      - ${DB_BACKUP_LOCATION}:/immich-db-backups
+      - ${BACKUP_LOG_LOCATION}:/immich-backup-logs
     environment:
       - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}
       - RCLONE_REMOTE_USER=${RCLONE_REMOTE_USER}
@@ -109,14 +113,11 @@ services:
       options:
         max-size: "50m"
 
-
 networks:
-  immich_net:
+  reinhardt_net:
+    external: true
+  immich_backup_net:
     driver: bridge
-
 
 volumes:
   model-cache:
-    name: selfhost_model-cache
-    external: true
-
