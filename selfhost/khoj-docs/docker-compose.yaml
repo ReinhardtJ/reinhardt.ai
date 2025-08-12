@@ -1,0 +1,120 @@
+services:
+  database:
+    container_name: khoj-docs-database
+    image: docker.io/pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - khoj_db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 10s
+      retries: 30
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+    restart: on-failure:10
+
+  sandbox:
+    container_name: khoj-docs-sandbox
+    image: ghcr.io/khoj-ai/terrarium:latest
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+    restart: on-failure:10
+
+  search:
+    container_name: khoj-docs-search
+    image: docker.io/searxng/searxng:latest
+    volumes:
+      - khoj_search:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+    restart: on-failure:10
+
+  computer:
+    container_name: khoj-docs-computer
+    image: ghcr.io/khoj-ai/khoj-computer:latest
+    # build:
+    #   context: .
+    #   dockerfile: computer.Dockerfile
+#    ports:
+#      - "5900:5900"
+    volumes:
+      - khoj_computer:/home/operator
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+    restart: on-failure:10
+
+  server:
+    container_name: khoj-docs-server
+    depends_on:
+      database:
+        condition: service_healthy
+    image: ghcr.io/khoj-ai/khoj:latest
+    networks:
+      - reinhardt_net
+    working_dir: /app
+    volumes:
+      - khoj_config:/root/.khoj/
+      - khoj_models:/root/.cache/torch/sentence_transformers
+      - khoj_models:/root/.cache/huggingface
+    environment:
+      - VIRTUAL_HOST=khoj-docs.reinhardt.ai
+      - LETSENCRYPT_HOST=khoj-docs.reinhardt.ai
+      - VIRTUAL_PORT=42110
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=khoj-database
+      - POSTGRES_PORT=5432
+      - KHOJ_DJANGO_SECRET_KEY
+      - KHOJ_DEBUG=False
+      - KHOJ_ADMIN_EMAIL
+      - KHOJ_ADMIN_PASSWORD
+      - KHOJ_TERRARIUM_URL=http://khoj-sandbox:8080
+      - KHOJ_SEARXNG_URL=http://khoj-search:8080
+      - OPENAI_API_KEY
+      - GEMINI_API_KEY
+      - ANTHROPIC_API_KEY
+      - JINA_API_KEY
+      - KHOJ_DOMAIN=khoj-docs.reinhardt.ai
+      - KHOJ_NO_HTTPS=False
+      - KHOJ_OPERATOR_ENABLED=True
+      - KHOJ_TELEMETRY_DISABLE=True
+    command: --host="0.0.0.0" --port=42110 -vv --non-interactive
+    restart: on-failure:10
+    logging:
+      options:
+        max-size: "50m"
+
+volumes:
+  khoj_config:
+  khoj_db:
+  khoj_models:
+  khoj_search:
+  khoj_computer:
+
+networks:
+  reinhardt_net:
+    external: true
