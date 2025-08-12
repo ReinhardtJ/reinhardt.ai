@@ -1,0 +1,23 @@
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    networks:
+      - reinhardt_net
+    # ports:
+    #   - "9000:9000"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./data:/data
+    environment:
+      - VIRTUAL_HOST=portainer.reinhardt.ai
+      - VIRTUAL_PORT=9000
+      - LETSENCRYPT_HOST=portainer.reinhardt.ai
+
+networks:
+  reinhardt_net:
+    external: true
