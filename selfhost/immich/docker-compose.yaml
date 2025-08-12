@@ -97,8 +97,6 @@ services:
     network_mode: service:immich-ts
     volumes:
       - ${LIBRARY_LOCATION}:/immich-library:ro
-      - ./immich-backup:/immich-backup
-      - ${DB_BACKUP_LOCATION}:/immich-db-backups
       - ${BACKUP_LOG_LOCATION}:/immich-backup-logs
     environment:
       - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}

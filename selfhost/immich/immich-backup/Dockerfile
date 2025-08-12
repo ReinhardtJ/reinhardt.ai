@@ -1,8 +1,8 @@
 # Use minimal Alpine Linux as base image
 FROM alpine:latest
 
-# Install rclone, tzdata, dcron, and postgresql-client for database backups
-RUN apk add --no-cache rclone tzdata dcron postgresql-client
+# Install rclone, tzdata, and dcron
+RUN apk add --no-cache rclone tzdata dcron
 
 # Set timezone to German time
 ENV TZ=Europe/Berlin
