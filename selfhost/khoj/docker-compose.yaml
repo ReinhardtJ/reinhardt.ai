@@ -1,42 +1,88 @@
 services:
-  khoj-ts:
-    image: tailscale/tailscale:latest
-    container_name: khoj-ts
-    hostname: khoj
+  database:
+    container_name: khoj-database
+    image: docker.io/pgvector/pgvector:pg15
     environment:
-      - TS_AUTHKEY
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
-      - TS_SERVE_CONFIG=/config/khoj-serve.json
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     volumes:
-      - ./ts-data/khoj:/var/lib/tailscale
-      - ./ts-config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-    restart: on-failure:10
+      - khoj_db:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 10s
+      retries: 30
     networks:
-      - khoj_net
+      - reinhardt_net
     logging:
       options:
         max-size: "50m"
+    restart: on-failure:10
 
-  khoj-server:
+  sandbox:
+    container_name: khoj-sandbox
+    image: ghcr.io/khoj-ai/terrarium:latest
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+    restart: on-failure:10
+
+  search:
+    container_name: khoj-search
+    image: docker.io/searxng/searxng:latest
+    volumes:
+      - khoj_search:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+    restart: on-failure:10
+
+  computer:
+    container_name: khoj-computer
+    image: ghcr.io/khoj-ai/khoj-computer:latest
+    # build:
+    #   context: .
+    #   dockerfile: computer.Dockerfile
+#    ports:
+#      - "5900:5900"
+    volumes:
+      - khoj_computer:/home/operator
+    networks:
+      - reinhardt_net
+    logging:
+      options:
+        max-size: "50m"
+    restart: on-failure:10
+
+  server:
     container_name: khoj-server
     depends_on:
-      khoj-database:
+      database:
         condition: service_healthy
-      khoj-ts:
-        condition: service_started
     image: ghcr.io/khoj-ai/khoj:latest
-    network_mode: service:khoj-ts
+    networks:
+      - reinhardt_net
     working_dir: /app
     volumes:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
       - khoj_models:/root/.cache/huggingface
     environment:
+      - VIRTUAL_HOST=khoj.reinhardt.ai
+      - LETSENCRYPT_HOST=khoj.reinhardt.ai
+      - VIRTUAL_PORT=42110
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -52,102 +98,23 @@ services:
       - GEMINI_API_KEY
       - ANTHROPIC_API_KEY
       - JINA_API_KEY
-      - KHOJ_DOMAIN=khoj
-      - KHOJ_ALLOWED_DOMAIN=khoj
-      - KHOJ_NO_HTTPS=True
+      - KHOJ_DOMAIN=khoj.reinhardt.ai
+      - KHOJ_NO_HTTPS=False
       - KHOJ_OPERATOR_ENABLED=True
-    command: --host="0.0.0.0" --port=80 -vv --non-interactive --anonymous-mode
+      - KHOJ_TELEMETRY_DISABLE=True
+    command: --host="0.0.0.0" --port=42110 -vv --non-interactive
     restart: on-failure:10
     logging:
       options:
         max-size: "50m"
-
-  khoj-database:
-    container_name: khoj-database
-    image: docker.io/pgvector/pgvector:pg15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    volumes:
-      - khoj_db:/var/lib/postgresql/data/
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 1s
-      timeout: 10s
-      retries: 30
-    networks:
-      - khoj_net
-    logging:
-      options:
-        max-size: "50m"
-    restart: on-failure:10
-
-  khoj-sandbox:
-    container_name: khoj-sandbox
-    image: ghcr.io/khoj-ai/terrarium:latest
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 2
-    networks:
-      - khoj_net
-    logging:
-      options:
-        max-size: "50m"
-    restart: on-failure:10
-
-  khoj-search:
-    container_name: khoj-search
-    image: docker.io/searxng/searxng:latest
-    volumes:
-      - khoj_search:/etc/searxng
-    environment:
-      - SEARXNG_BASE_URL=http://localhost:8080/
-    networks:
-      - khoj_net
-    logging:
-      options:
-        max-size: "50m"
-    restart: on-failure:10
-
-  khoj-computer:
-    container_name: khoj-computer
-    image: ghcr.io/khoj-ai/khoj-computer:latest
-    # build:
-    #   context: .
-    #   dockerfile: computer.Dockerfile
-    ports:
-      - "5900:5900"
-    volumes:
-      - khoj_computer:/home/operator
-    networks:
-      - khoj_net
-    logging:
-      options:
-        max-size: "50m"
-    restart: on-failure:10
-
-networks:
-  khoj_net:
-    driver: bridge
-
 
 volumes:
   khoj_config:
-    name: selfhost_khoj_config
-    external: true
   khoj_db:
-    name: selfhost_khoj_db
-    external: true
   khoj_models:
-    name: selfhost_khoj_models
-    external: true
   khoj_search:
-    name: selfhost_khoj_search
-    external: true
   khoj_computer:
-    name: selfhost_khoj_computer
-    external: true
 
+networks:
+  reinhardt_net:
+    external: true
