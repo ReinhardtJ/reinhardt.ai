@@ -1,26 +1,25 @@
 services:
-  immich-ts:
-    image: tailscale/tailscale:latest
-    container_name: immich-ts
-    hostname: immich
-    environment:
-      - TS_AUTHKEY
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
-      - TS_SERVE_CONFIG=/config/immich-serve.json
-    volumes:
-      - ./ts-data/immich:/var/lib/tailscale
-      - ./ts-config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-    restart: on-failure:10
-    networks:
-      - immich_backup_net
-    logging:
-      options:
-        max-size: "50m"
+#  immich-ts:
+#    image: tailscale/tailscale:latest
+#    container_name: immich-ts
+#    hostname: immich
+#    environment:
+#      - TS_AUTHKEY
+#      - TS_STATE_DIR=/var/lib/tailscale
+#      - TS_USERSPACE=false
+#      - TS_SERVE_CONFIG=/config/immich-serve.json
+#    volumes:
+#      - ./ts-data/immich:/var/lib/tailscale
+#    devices:
+#      - /dev/net/tun:/dev/net/tun
+#    cap_add:
+#      - NET_ADMIN
+#    restart: on-failure:10
+#    networks:
+#      - immich_backup_net
+#    logging:
+#      options:
+#        max-size: "50m"
 
   immich-server:
     container_name: immich-server
@@ -36,6 +35,7 @@ services:
       - VIRTUAL_HOST=immich.reinhardt.ai
       - LETSENCRYPT_HOST=immich.reinhardt.ai
       - VIRTUAL_PORT=2283
+      - LIBHEIF_SECURITY_LIMITS=OFF
     depends_on:
       - redis
       - database
@@ -86,27 +86,6 @@ services:
     restart: on-failure:10
     networks:
       - reinhardt_net
-    logging:
-      options:
-        max-size: "50m"
-
-  immich-backup:
-    build:
-      context: ./immich-backup
-    container_name: immich-backup
-    network_mode: service:immich-ts
-    volumes:
-      - ${LIBRARY_LOCATION}:/immich-library:ro
-      - ${BACKUP_LOG_LOCATION}:/immich-backup-logs
-    environment:
-      - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}
-      - RCLONE_REMOTE_USER=${RCLONE_REMOTE_USER}
-      - RCLONE_SSH_KEY=${RCLONE_SSH_KEY}
-    env_file:
-      - .env
-    depends_on:
-      - immich-ts
-    restart: on-failure:10
     logging:
       options:
         max-size: "50m"
