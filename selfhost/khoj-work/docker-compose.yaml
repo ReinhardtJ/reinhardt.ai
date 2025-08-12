@@ -1,68 +1,5 @@
 services:
-  khoj-work-ts:
-    image: tailscale/tailscale:latest
-    container_name: khoj-work-ts
-    hostname: khoj-work
-    environment:
-      - TS_AUTHKEY
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
-      - TS_SERVE_CONFIG=/config/khoj-serve.json
-    volumes:
-      - ./ts-data/khoj-work:/var/lib/tailscale
-      - ./ts-config:/config
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
-    restart: on-failure:10
-    networks:
-      - khoj_work_net
-    logging:
-      options:
-        max-size: "50m"
-
-  khoj-work-server:
-    container_name: khoj-work-server
-    depends_on:
-      khoj-work-database:
-        condition: service_healthy
-      khoj-work-ts:
-        condition: service_started
-    image: ghcr.io/khoj-ai/khoj:latest
-    network_mode: service:khoj-work-ts
-    working_dir: /app
-    volumes:
-      - khoj_work_config:/root/.khoj/
-      - khoj_work_models:/root/.cache/torch/sentence_transformers
-      - khoj_work_models:/root/.cache/huggingface
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST=khoj-work-database
-      - POSTGRES_PORT=5432
-      - KHOJ_DJANGO_SECRET_KEY
-      - KHOJ_DEBUG=False
-      - KHOJ_ADMIN_EMAIL
-      - KHOJ_ADMIN_PASSWORD
-      - KHOJ_TERRARIUM_URL=http://khoj-work-sandbox:8080
-      - KHOJ_SEARXNG_URL=http://khoj-work-search:8080
-      - OPENAI_API_KEY
-      - GEMINI_API_KEY
-      - ANTHROPIC_API_KEY
-      - JINA_API_KEY
-      - KHOJ_DOMAIN=khoj-work
-      - KHOJ_ALLOWED_DOMAIN=khoj-work
-      - KHOJ_NO_HTTPS=True
-      - KHOJ_OPERATOR_ENABLED=True
-    command: --host="0.0.0.0" --port=80 -vv --non-interactive --anonymous-mode
-    restart: on-failure:10
-    logging:
-      options:
-        max-size: "50m"
-
-  khoj-work-database:
+  database:
     container_name: khoj-work-database
     image: docker.io/pgvector/pgvector:pg15
     environment:
@@ -70,84 +7,114 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     volumes:
-      - khoj_work_db:/var/lib/postgresql/data/
+      - khoj_db:/var/lib/postgresql/data/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 1s
       timeout: 10s
       retries: 30
     networks:
-      - khoj_work_net
+      - reinhardt_net
     logging:
       options:
         max-size: "50m"
     restart: on-failure:10
 
-  khoj-work-sandbox:
+  sandbox:
     container_name: khoj-work-sandbox
     image: ghcr.io/khoj-ai/terrarium:latest
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health" ]
       interval: 30s
       timeout: 10s
       retries: 2
     networks:
-      - khoj_work_net
+      - reinhardt_net
     logging:
       options:
         max-size: "50m"
     restart: on-failure:10
 
-  khoj-work-search:
+  search:
     container_name: khoj-work-search
     image: docker.io/searxng/searxng:latest
     volumes:
-      - khoj_work_search:/etc/searxng
+      - khoj_search:/etc/searxng
     environment:
       - SEARXNG_BASE_URL=http://localhost:8080/
     networks:
-      - khoj_work_net
+      - reinhardt_net
     logging:
       options:
         max-size: "50m"
     restart: on-failure:10
 
-  khoj-work-computer:
+  computer:
     container_name: khoj-work-computer
     image: ghcr.io/khoj-ai/khoj-computer:latest
     # build:
     #   context: .
     #   dockerfile: computer.Dockerfile
-    ports:
-      - "5901:5900"
+    #    ports:
+    #      - "5900:5900"
     volumes:
-      - khoj_work_computer:/home/operator
+      - khoj_computer:/home/operator
     networks:
-      - khoj_work_net
+      - reinhardt_net
     logging:
       options:
         max-size: "50m"
     restart: on-failure:10
 
-
-networks:
-  khoj_work_net:
-    driver: bridge
+  server:
+    container_name: khoj-work-server
+    depends_on:
+      database:
+        condition: service_healthy
+    image: ghcr.io/khoj-ai/khoj:latest
+    networks:
+      - reinhardt_net
+    working_dir: /app
+    volumes:
+      - khoj_config:/root/.khoj/
+      - khoj_models:/root/.cache/torch/sentence_transformers
+      - khoj_models:/root/.cache/huggingface
+    environment:
+      - VIRTUAL_HOST=khoj-work.reinhardt.ai
+      - LETSENCRYPT_HOST=khoj-work.reinhardt.ai
+      - VIRTUAL_PORT=42110
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=khoj-database
+      - POSTGRES_PORT=5432
+      - KHOJ_DJANGO_SECRET_KEY
+      - KHOJ_DEBUG=False
+      - KHOJ_ADMIN_EMAIL
+      - KHOJ_ADMIN_PASSWORD
+      - KHOJ_TERRARIUM_URL=http://khoj-sandbox:8080
+      - KHOJ_SEARXNG_URL=http://khoj-search:8080
+      - OPENAI_API_KEY
+      - GEMINI_API_KEY
+      - ANTHROPIC_API_KEY
+      - JINA_API_KEY
+      - KHOJ_DOMAIN=khoj-work.reinhardt.ai
+      - KHOJ_NO_HTTPS=False
+      - KHOJ_OPERATOR_ENABLED=True
+      - KHOJ_TELEMETRY_DISABLE=True
+    command: --host="0.0.0.0" --port=42110 -vv --non-interactive
+    restart: on-failure:10
+    logging:
+      options:
+        max-size: "50m"
 
 volumes:
-  khoj_work_config:
-    name: selfhost_khoj_work_config
-    external: true
-  khoj_work_db:
-    name: selfhost_khoj_work_db
-    external: true
-  khoj_work_models:
-    name: selfhost_khoj_work_models
-    external: true
-  khoj_work_search:
-    name: selfhost_khoj_work_search
-    external: true
-  khoj_work_computer:
-    name: selfhost_khoj_work_computer
-    external: true
+  khoj_config:
+  khoj_db:
+  khoj_models:
+  khoj_search:
+  khoj_computer:
 
+networks:
+  reinhardt_net:
+    external: true
