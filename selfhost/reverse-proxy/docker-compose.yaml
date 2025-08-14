@@ -10,6 +10,7 @@ services:
       - certs:/etc/nginx/certs
       - vhost:/etc/nginx/vhost.d
       - html:/usr/share/nginx/html
+      - ./reverse_proxy.conf:/etc/nginx/conf.d/reverse_proxy.conf:ro
     networks:
       - reinhardt_net
     restart: always
