@@ -1,0 +1,20 @@
+services:
+  agent-zero-rr-server:
+    image: frdel/agent-zero-run:latest
+    container_name: agent-zero-rr-server
+    networks:
+      - reinhardt_net
+    environment:
+      VIRTUAL_HOST: a0.reinhardt.ai
+      LETSENCRYPT_HOST: a0.reinhardt.ai
+    volumes:
+      - /home/jonas/volumes/agent_zero_rr_data:/a0
+    restart: on-failure:10
+    logging:
+      options:
+        max-size: "50m"
+
+networks:
+  reinhardt_net:
+    external: true
+
