@@ -1,6 +1,6 @@
 services:
   agent-zero-rr-server:
-    image: frdel/agent-zero-run:latest
+    image: agent0ai/agent-zero:latest
     container_name: agent-zero-rr-server
     networks:
       - reinhardt_net
