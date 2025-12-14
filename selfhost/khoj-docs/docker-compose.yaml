@@ -86,14 +86,14 @@ services:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_HOST=khoj-database
+      - POSTGRES_HOST=khoj-docs-database
       - POSTGRES_PORT=5432
       - KHOJ_DJANGO_SECRET_KEY
       - KHOJ_DEBUG=False
       - KHOJ_ADMIN_EMAIL
       - KHOJ_ADMIN_PASSWORD
-      - KHOJ_TERRARIUM_URL=http://khoj-sandbox:8080
-      - KHOJ_SEARXNG_URL=http://khoj-search:8080
+      - KHOJ_TERRARIUM_URL=http://khoj-docs-sandbox:8080
+      - KHOJ_SEARXNG_URL=http://khoj-docs-search:8080
       - OPENAI_API_KEY
       - GEMINI_API_KEY
       - ANTHROPIC_API_KEY
