@@ -98,52 +98,57 @@ services:
     networks:
       - reinhardt_net
 
-  affine-backup-ts:
-    image: tailscale/tailscale:latest
-    container_name: affine-backup-ts
-    hostname: affine-backup
-    environment:
-      - TS_AUTHKEY
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
+  indexer:
+    image: manticoresearch/manticore:${MANTICORE_VERSION:-10.1.0}
+    container_name: affine_indexer
     volumes:
-      - ./ts-data/affine-backup:/var/lib/tailscale
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - NET_ADMIN
+      - ${MANTICORE_DATA_LOCATION}:/var/lib/manticore
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        ['CMD', 'wget', '-O-', 'http://127.0.0.1:9308']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: on-failure:10
+    logging:
+      options:
+        max-size: "50m"
     networks:
       - reinhardt_net
-    logging:
-      options:
-        max-size: "50m"
 
-  affine-backup:
-    build:
-      context: ./affine-backup
-    container_name: affine-backup
-    network_mode: service:affine-backup-ts
-    volumes:
-      - ./affine-data/self-host/config:/affine-data/config:ro
-      - ./affine-data/self-host/storage:/affine-data/storage:ro
-      - ./affine-backup:/affine-backup
-      - ./affine-db-backups:/affine-db-backups
-    environment:
-      - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}
-      - RCLONE_REMOTE_USER=${RCLONE_REMOTE_USER}
-      - RCLONE_SSH_KEY=${RCLONE_SSH_KEY}
-    env_file:
-      - .env
-    depends_on:
-      - affine-backup-ts
-      - postgres
-    restart: on-failure:10
-    logging:
-      options:
-        max-size: "50m"
+#  affine-backup:
+#    build:
+#      context: affine-backup
+#    container_name: affine-backup
+#    network_mode: service:affine-backup-ts
+#    volumes:
+#      - ./affine-data/self-host/config:/affine-data/config:ro
+#      - ./affine-data/self-host/storage:/affine-data/storage:ro
+#      - ./affine-backup:/affine-backup
+#      - ./affine-db-backups:/affine-db-backups
+#    environment:
+#      - RCLONE_REMOTE_HOST=${RCLONE_REMOTE_HOST}
+#      - RCLONE_REMOTE_USER=${RCLONE_REMOTE_USER}
+#      - RCLONE_SSH_KEY=${RCLONE_SSH_KEY}
+#    env_file:
+#      - .env
+#    depends_on:
+#      - affine-backup-ts
+#      - postgres
+#    restart: on-failure:10
+#    logging:
+#      options:
+#        max-size: "50m"
+
 
 networks:
   reinhardt_net:
-    driver: bridge
-    name: reinhardt_net
+    external: true
