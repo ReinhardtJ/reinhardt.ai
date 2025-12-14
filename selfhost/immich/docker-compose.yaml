@@ -1,26 +1,4 @@
 services:
-#  immich-ts:
-#    image: tailscale/tailscale:latest
-#    container_name: immich-ts
-#    hostname: immich
-#    environment:
-#      - TS_AUTHKEY
-#      - TS_STATE_DIR=/var/lib/tailscale
-#      - TS_USERSPACE=false
-#      - TS_SERVE_CONFIG=/config/immich-serve.json
-#    volumes:
-#      - ./ts-data/immich:/var/lib/tailscale
-#    devices:
-#      - /dev/net/tun:/dev/net/tun
-#    cap_add:
-#      - NET_ADMIN
-#    restart: on-failure:10
-#    networks:
-#      - immich_backup_net
-#    logging:
-#      options:
-#        max-size: "50m"
-
   immich-server:
     container_name: immich-server
     image: ghcr.io/immich-app/immich-server:release
@@ -39,7 +17,7 @@ services:
     depends_on:
       - redis
       - database
-    restart: on-failure:10
+    restart: always
     logging:
       options:
         max-size: "50m"
