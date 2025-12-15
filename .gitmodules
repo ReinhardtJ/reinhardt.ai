@@ -1,0 +1,3 @@
+[submodule "selfhost/khoj-beta/khoj"]
+	path = selfhost/khoj-beta/khoj
+	url = https://github.com/khoj-ai/khoj.git
