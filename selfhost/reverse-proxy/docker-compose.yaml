@@ -29,6 +29,7 @@ services:
     networks:
       - reinhardt_net
     restart: always
+    
 
 volumes:
   certs:
